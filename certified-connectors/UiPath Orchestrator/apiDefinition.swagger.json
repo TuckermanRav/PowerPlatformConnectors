@@ -2,7 +2,7 @@
   "swagger": "2.0",
   "info":
   {
-    "title": "UiPath Orchestrator",
+    "title": "UiPath Automation Cloud",
     "description": "Run automations in UiPath Cloud Orchestrator.",
     "version": "1.0.0",
     "contact":
@@ -43,7 +43,7 @@
       "tokenUrl": "https://cloud.uipath.com/identity_/connect/token",
       "scopes":
       {
-        "OR.Execution.Read OR.Folders.Read OR.Jobs.Write OR.Queues offline_access": "OR.Execution.Read OR.Folders.Read OR.Jobs.Write OR.Queues offline_access"
+        "OR.Execution.Read OR.Folders.Read OR.Jobs OR.Queues OR.Machines.Read offline_access": "OR.Execution.Read OR.Folders.Read OR.Jobs OR.Queues OR.Machines.Read offline_access"
       }
     }
   },
@@ -52,7 +52,7 @@
     {
       "oauth2_auth":
       [
-        "OR.Execution.Read OR.Folders.Read OR.Jobs.Write OR.Queues offline_access"
+        "OR.Execution.Read OR.Folders.Read OR.Jobs OR.Queues OR.Machines.Read offline_access"
       ]
     }
   ],
@@ -136,10 +136,6 @@
           }
         },
         "summary": "Get Folders",
-        "tags":
-        [
-          "Folders"
-        ],
         "x-ms-visibility": "internal"
       }
     },
@@ -164,6 +160,7 @@
         ],
         "description": "Creates a new job and sets it in Pending state for each robot based on the input parameters and notifies the respective robots about the pending job.",
         "operationId": "StartJobs",
+        "summary": "Start Job",
         "parameters":
         [
           {
@@ -207,11 +204,48 @@
             }
           }
         },
-        "summary": "Start Job",
+
         "tags":
         [
           "Jobs"
         ]
+      }
+    },
+    "/odata/Jobs({key})":
+    {
+      "get":
+      {
+        "summary": "Get Job",
+        "description": "Gets a single job by id",
+        "operationId": "GetJob",
+        "produces":
+        [
+          "application/json"
+        ],
+        "parameters":
+        [
+          {
+            "in": "path",
+            "name": "key",
+            "description": "Specifies the unique job id",
+            "required": true,
+            "type": "integer",
+            "format": "int64",
+            "x-ms-summary": "Job Id",
+            "x-ms-url-encoding": "single"
+          }
+        ],
+        "responses":
+        {
+          "200":
+          {
+            "description": "Success",
+            "schema":
+            {
+              "$ref": "#/definitions/JobDto"
+            }
+          }
+        }
       }
     },
     "/odata/Processes":
@@ -368,7 +402,7 @@
         [
           "Queues"
         ],
-        "summary": "Adds Queue Item",
+        "summary": "Add Queue Item",
         "description": "Add a new queue item for processing.",
         "operationId": "AddQueueItem",
         "consumes":
@@ -520,6 +554,67 @@
         }
       }
     },
+    "/odata/QueueItems({key})":
+    {
+      "get":
+      {
+        "summary": "Get Queue Item",
+        "description": "Gets a single queue item by id.",
+        "operationId": "GetQueueItem",
+        "produces":
+        [
+          "application/json"
+        ],
+        "parameters":
+        [
+          {
+            "in": "path",
+            "name": "key",
+            "description": "Specifies the unique identifier for a queue item",
+            "required": true,
+            "type": "integer",
+            "format": "int64",
+            "x-ms-summary": "Queue Item Id",
+            "x-ms-url-encoding": "single"
+          },
+          {
+            "in": "header",
+            "name": "X-UIPATH-OrganizationUnitId",
+            "description": "Folder/OrganizationUnit Id",
+            "type": "integer",
+            "format": "int64",
+            "required": true,
+            "x-ms-summary": "Folder",
+            "x-ms-dynamic-values":
+            {
+              "operationId": "GetFolders",
+              "value-path": "Id",
+              "value-collection": "value",
+              "value-title": "FullyQualifiedName"
+            }
+          }
+        ],
+        "responses":
+        {
+          "200":
+          {
+            "description": "Success",
+            "schema":
+            {
+              "$ref": "#/definitions/QueueItemDto"
+            }
+          }
+        },
+        "security":
+        [
+          {
+            "OAuth2":
+            [
+            ]
+          }
+        ]
+      }
+    },
     "/odata/Releases":
     {
       "get":
@@ -571,6 +666,61 @@
           }
         }
       }
+    },
+    "/odata/Machines/UiPath.Server.Configuration.OData.GetRuntimesForFolder(folderId={folderId})":
+    {
+      "get":
+      {
+        "tags":
+        [
+          "Machines"
+        ],
+        "summary": "Gets available runtimes",
+        "description": "Gets a list of available runtimes for the specified folder",
+        "operationId": "GetMachinesByFolderId",
+        "x-ms-visibility": "internal",
+        "produces":
+        [
+          "application/json"
+        ],
+        "parameters":
+        [
+          {
+            "in": "path",
+            "name": "folderId",
+            "description": "",
+            "required": true,
+            "type": "integer",
+            "format": "int64",
+            "x-ms-url-encoding": "single"
+          },
+          {
+            "$ref": "#/parameters/filter"
+          },
+          {
+            "$ref": "#/parameters/orderBy"
+          }
+        ],
+        "responses":
+        {
+          "200":
+          {
+            "description": "Success",
+            "schema":
+            {
+              "$ref": "#/definitions/ODataValueOfIEnumerableOfMachineRuntimeDto"
+            }
+          }
+        },
+        "security":
+        [
+          {
+            "OAuth2":
+            [
+            ]
+          }
+        ]
+      }
     }
   },
   "definitions":
@@ -587,59 +737,6 @@
         "Output":
         {
           "type": "string"
-        }
-      }
-    },
-    "AttendedRobotDto":
-    {
-      "type": "object",
-      "properties":
-      {
-        "UserName":
-        {
-          "description": "The username used to authenticate on the Host Machine.",
-          "maxLength": 100,
-          "minLength": 0,
-          "type": "string"
-        },
-        "ExecutionSettings":
-        {
-          "description": "An object containing execution settings for the Robot.",
-          "type": "object",
-          "additionalProperties":
-          {
-          }
-        },
-        "RobotId":
-        {
-          "format": "int64",
-          "description": "The actual Id of the provisioned Robot.",
-          "type": "integer"
-        },
-        "RobotType":
-        {
-          "description": "The actual Type of the provisioned Robot.",
-          "enum":
-          [
-            "NonProduction",
-            "Attended",
-            "Unattended",
-            "Studio",
-            "RpaDeveloper",
-            "Development",
-            "StudioX",
-            "CitizenDeveloper",
-            "Headless",
-            "RpaDeveloperPro",
-            "StudioPro",
-            "TestAutomation"
-          ],
-          "type": "string",
-          "x-ms-enum":
-          {
-            "name": "AttendedRobotDtoRobotType",
-            "modelAsString": false
-          }
         }
       }
     },
@@ -723,63 +820,6 @@
         }
       }
     },
-    "EnvironmentDto":
-    {
-      "description": "A grouping of Robots.",
-      "required":
-      [
-        "Name"
-      ],
-      "type": "object",
-      "properties":
-      {
-        "Name":
-        {
-          "description": "A custom name for the environment.",
-          "maxLength": 100,
-          "minLength": 0,
-          "type": "string"
-        },
-        "Description":
-        {
-          "description": "Used to add additional information about an environment in order to better identify it.",
-          "maxLength": 500,
-          "minLength": 0,
-          "type": "string"
-        },
-        "Robots":
-        {
-          "description": "The collection of robots associated with the current environment.",
-          "type": "array",
-          "items":
-          {
-            "$ref": "#/definitions/SimpleRobotDto"
-          }
-        },
-        "Type":
-        {
-          "description": "DEPRECATED. The environment type specifies how it should be used.\r\nThis property is deprecated and should no longer be used.",
-          "enum":
-          [
-            "Dev",
-            "Test",
-            "Prod"
-          ],
-          "type": "string",
-          "x-ms-enum":
-          {
-            "name": "EnvironmentDtoType",
-            "modelAsString": false
-          },
-          "x-deprecated": true
-        },
-        "Id":
-        {
-          "format": "int64",
-          "type": "integer"
-        }
-      }
-    },
     "FolderDto":
     {
       "required":
@@ -792,7 +832,7 @@
         "Key":
         {
           "format": "uuid",
-          "description": "Unique key for the folder",
+          "description": "Unique key for the folder.",
           "type": "string"
         },
         "DisplayName":
@@ -880,6 +920,7 @@
         },
         "Id":
         {
+          "description": "Unique identifier of the folder.",
           "format": "int64",
           "type": "integer"
         }
@@ -911,7 +952,7 @@
         },
         "State":
         {
-          "description": "The state in which the job is.",
+          "description": "Represents the current state of the job.",
           "enum":
           [
             "Pending",
@@ -934,6 +975,7 @@
         "JobPriority":
         {
           "description": "Execution priority.",
+          "x-ms-summary": "Job Priority",
           "enum":
           [
             "Low",
@@ -946,14 +988,6 @@
             "name": "JobDtoJobPriority",
             "modelAsString": false
           }
-        },
-        "Robot":
-        {
-          "$ref": "#/definitions/SimpleRobotDto"
-        },
-        "Release":
-        {
-          "$ref": "#/definitions/SimpleReleaseDto"
         },
         "Source":
         {
@@ -978,12 +1012,6 @@
             "modelAsString": false
           }
         },
-        "BatchExecutionKey":
-        {
-          "format": "uuid",
-          "description": "The unique identifier grouping multiple jobs. It is usually generated when the job is created by a schedule.",
-          "type": "string"
-        },
         "Info":
         {
           "description": "Additional information about the current job.",
@@ -994,12 +1022,6 @@
           "format": "date-time",
           "description": "The date and time when the job was created.",
           "type": "string"
-        },
-        "StartingScheduleId":
-        {
-          "format": "int64",
-          "description": "The Id of the schedule that started the job, or null if the job was started by the user.",
-          "type": "integer"
         },
         "ReleaseName":
         {
@@ -1138,10 +1160,6 @@
             "modelAsString": false
           }
         },
-        "Machine":
-        {
-          "$ref": "#/definitions/MachineDto"
-        },
         "ProfilingOptions":
         {
           "description": "Options to instruct the robot what profiling info to collect (code coverage, CPU / memory utilization, etc)",
@@ -1149,6 +1167,7 @@
         },
         "Id":
         {
+          "description": "The unique identifier for the job.",
           "format": "int64",
           "type": "integer"
         }
@@ -1348,6 +1367,58 @@
         {
           "format": "int64",
           "description": "The Id of the Machine.",
+          "type": "integer"
+        }
+      }
+    },
+    "MachineRuntimeDto":
+    {
+      "type": "object",
+      "properties":
+      {
+        "Type":
+        {
+          "enum":
+          [
+            "NonProduction",
+            "Attended",
+            "Unattended",
+            "Development",
+            "Studio",
+            "RpaDeveloper",
+            "StudioX",
+            "CitizenDeveloper",
+            "Headless",
+            "RpaDeveloperPro",
+            "StudioPro",
+            "TestAutomation",
+            "AutomationCloud",
+            "Serverless",
+            "AutomationKit",
+            "ServerlessTestAutomation",
+            "AutomationCloudTestAutomation",
+            "AttendedStudioWeb"
+          ],
+          "type": "string",
+          "x-ms-enum":
+          {
+            "name": "MachineRuntimeDtoType",
+            "modelAsString": false
+          }
+        },
+        "Total":
+        {
+          "format": "int64",
+          "type": "integer"
+        },
+        "Connected":
+        {
+          "format": "int64",
+          "type": "integer"
+        },
+        "Available":
+        {
+          "format": "int64",
           "type": "integer"
         }
       }
@@ -1764,6 +1835,7 @@
         },
         "Id":
         {
+          "description": "The unique identifier for the queue definition.",
           "format": "int64",
           "type": "integer"
         }
@@ -1848,10 +1920,6 @@
           "description": "The Id of the parent queue.",
           "type": "integer"
         },
-        "QueueDefinition":
-        {
-          "$ref": "#/definitions/QueueDefinitionDto"
-        },
         "ProcessingException":
         {
           "$ref": "#/definitions/ProcessingExceptionDto"
@@ -1933,10 +2001,6 @@
           "description": "The UserId of the Reviewer, if any.",
           "type": "integer"
         },
-        "ReviewerUser":
-        {
-          "$ref": "#/definitions/SimpleUserDto"
-        },
         "Key":
         {
           "format": "uuid",
@@ -1992,10 +2056,6 @@
             "name": "QueueItemDtoPriority",
             "modelAsString": false
           }
-        },
-        "Robot":
-        {
-          "$ref": "#/definitions/SimpleRobotDto"
         },
         "DeferDate":
         {
@@ -2142,10 +2202,6 @@
         {
           "description": "The name of the environment associated with the release.",
           "type": "string"
-        },
-        "Environment":
-        {
-          "$ref": "#/definitions/EnvironmentDto"
         },
         "EntryPointId":
         {
@@ -2323,620 +2379,6 @@
         }
       }
     },
-    "SimpleReleaseDto":
-    {
-      "description": "Entity derived from BaseReleaseDto. It shares all the properties of the base entity except the navigation properties.",
-      "required":
-      [
-        "Name",
-        "ProcessKey",
-        "ProcessVersion"
-      ],
-      "type": "object",
-      "properties":
-      {
-        "Key":
-        {
-          "description": "A unique identifier associated to each release.",
-          "type": "string"
-        },
-        "ProcessKey":
-        {
-          "description": "The unique identifier of the process associated with the release.",
-          "type": "string"
-        },
-        "ProcessVersion":
-        {
-          "description": "The version of the process associated with the release.",
-          "type": "string"
-        },
-        "IsLatestVersion":
-        {
-          "description": "States whether the version of process associated with the release is latest or not.",
-          "type": "boolean"
-        },
-        "IsProcessDeleted":
-        {
-          "description": "States whether the process associated with the release is deleted or not.",
-          "type": "boolean"
-        },
-        "Description":
-        {
-          "description": "Used to add additional information about a release in order to better identify it.",
-          "type": "string"
-        },
-        "Name":
-        {
-          "description": "A custom name of the release. The default name format is ProcessName_EnvironmentName.",
-          "type": "string"
-        },
-        "EnvironmentId":
-        {
-          "format": "int64",
-          "description": "The Id of the environment associated with the release.",
-          "type": "integer"
-        },
-        "EnvironmentName":
-        {
-          "description": "The name of the environment associated with the release.",
-          "type": "string"
-        },
-        "Environment":
-        {
-          "$ref": "#/definitions/EnvironmentDto"
-        },
-        "EntryPointId":
-        {
-          "format": "int64",
-          "type": "integer"
-        },
-        "EntryPoint":
-        {
-          "$ref": "#/definitions/EntryPointDto"
-        },
-        "InputArguments":
-        {
-          "description": "Input parameters in JSON format to be passed as default values to job execution.",
-          "maxLength": 10000,
-          "type": "string"
-        },
-        "ProcessType":
-        {
-          "enum":
-          [
-            "Undefined",
-            "Process",
-            "TestAutomationProcess"
-          ],
-          "type": "string",
-          "x-ms-enum":
-          {
-            "name": "ReleaseDtoProcessType",
-            "modelAsString": false
-          }
-        },
-        "SupportsMultipleEntryPoints":
-        {
-          "type": "boolean"
-        },
-        "RequiresUserInteraction":
-        {
-          "type": "boolean"
-        },
-        "CurrentVersion":
-        {
-          "$ref": "#/definitions/ReleaseVersionDto"
-        },
-        "ReleaseVersions":
-        {
-          "description": "The collection of release versions that current release had over time.",
-          "type": "array",
-          "items":
-          {
-            "$ref": "#/definitions/ReleaseVersionDto"
-          }
-        },
-        "Arguments":
-        {
-          "$ref": "#/definitions/ArgumentMetadata"
-        },
-        "ProcessSettings":
-        {
-          "$ref": "#/definitions/ProcessSettingsDto"
-        },
-        "AutoUpdate":
-        {
-          "type": "boolean"
-        },
-        "FeedId":
-        {
-          "format": "uuid",
-          "type": "string"
-        },
-        "JobPriority":
-        {
-          "description": "The execution priority. If null, it defaults to Normal.",
-          "enum":
-          [
-            "Low",
-            "Normal",
-            "High"
-          ],
-          "type": "string",
-          "x-ms-enum":
-          {
-            "name": "ReleaseDtoJobPriority",
-            "modelAsString": false
-          }
-        },
-        "CreationTime":
-        {
-          "format": "date-time",
-          "description": "Creation time of this release.",
-          "type": "string"
-        },
-        "OrganizationUnitId":
-        {
-          "format": "int64",
-          "description": "Id of the folder this release is part of.",
-          "type": "integer"
-        },
-        "OrganizationUnitFullyQualifiedName":
-        {
-          "description": "Fully qualified name of the folder this release is part of.",
-          "type": "string"
-        },
-        "Id":
-        {
-          "format": "int64",
-          "type": "integer"
-        }
-      }
-    },
-    "SimpleRobotDto":
-    {
-      "description": "Entity derived from RobotDto. Is shares all the properties of the base entity except the navigation properties.",
-      "required":
-      [
-        "HostingType",
-        "Name",
-        "Type",
-        "Username"
-      ],
-      "type": "object",
-      "properties":
-      {
-        "LicenseKey":
-        {
-          "description": "The key is automatically generated from the server for the Robot machine. For the robot to work, the same key must exist on both the robot and Orchestrator.",
-          "maxLength": 255,
-          "minLength": 0,
-          "type": "string"
-        },
-        "MachineName":
-        {
-          "description": "The name of the machine a Robot is hosted on.",
-          "maxLength": 450,
-          "minLength": 0,
-          "type": "string"
-        },
-        "MachineId":
-        {
-          "format": "int64",
-          "description": "The Id of the machine a Robot is hosted on",
-          "type": "integer"
-        },
-        "Name":
-        {
-          "description": "A custom name for the robot.",
-          "maxLength": 19,
-          "minLength": 0,
-          "type": "string"
-        },
-        "Username":
-        {
-          "description": "The machine username. If the user is under a domain, you are required to also specify it in a DOMAIN\\username format. Note: You must use short domain names, such as desktop\\administrator and NOT desktop.local/administrator.",
-          "maxLength": 100,
-          "minLength": 0,
-          "type": "string"
-        },
-        "ExternalName":
-        {
-          "description": "Contains the value of the key in the external store used to store the password.",
-          "maxLength": 450,
-          "minLength": 0,
-          "type": "string"
-        },
-        "Description":
-        {
-          "description": "Used to add additional information about a robot in order to better identify it.",
-          "maxLength": 500,
-          "minLength": 0,
-          "type": "string"
-        },
-        "Type":
-        {
-          "description": "The Robot type.",
-          "enum":
-          [
-            "NonProduction",
-            "Attended",
-            "Unattended",
-            "Studio",
-            "RpaDeveloper",
-            "Development",
-            "StudioX",
-            "CitizenDeveloper",
-            "Headless",
-            "RpaDeveloperPro",
-            "StudioPro",
-            "TestAutomation"
-          ],
-          "type": "string",
-          "x-ms-enum":
-          {
-            "name": "RobotDtoType",
-            "modelAsString": false
-          }
-        },
-        "HostingType":
-        {
-          "description": "The Robot hosting type (Standard / Floating).",
-          "enum":
-          [
-            "Standard",
-            "Floating"
-          ],
-          "type": "string",
-          "x-ms-enum":
-          {
-            "name": "RobotDtoHostingType",
-            "modelAsString": false
-          }
-        },
-        "ProvisionType":
-        {
-          "description": "The Robot provision type.",
-          "enum":
-          [
-            "Manual",
-            "Automatic"
-          ],
-          "type": "string",
-          "x-ms-enum":
-          {
-            "name": "RobotDtoProvisionType",
-            "modelAsString": false
-          }
-        },
-        "Password":
-        {
-          "description": "The Windows password associated with the machine username.",
-          "maxLength": 100,
-          "minLength": 0,
-          "type": "string"
-        },
-        "CredentialStoreId":
-        {
-          "format": "int64",
-          "description": "The Credential Store used to store the password.",
-          "type": "integer"
-        },
-        "UserId":
-        {
-          "format": "int64",
-          "description": "The associated user's Id.",
-          "type": "integer"
-        },
-        "Enabled":
-        {
-          "description": "Specificies the state of the Robot (enabled/disabled) - a disabled robot cannot connect to Orchestrator",
-          "type": "boolean"
-        },
-        "CredentialType":
-        {
-          "description": "The robot credentials type (Default/ SmartCard)",
-          "enum":
-          [
-            "Default",
-            "SmartCard",
-            "NCipher",
-            "SafeNet"
-          ],
-          "type": "string",
-          "x-ms-enum":
-          {
-            "name": "RobotDtoCredentialType",
-            "modelAsString": false
-          }
-        },
-        "Environments":
-        {
-          "description": "The collection of environments the robot is part of.",
-          "type": "array",
-          "items":
-          {
-            "$ref": "#/definitions/EnvironmentDto"
-          }
-        },
-        "RobotEnvironments":
-        {
-          "description": "The comma separated textual representation of environment names the robot is part of.",
-          "type": "string"
-        },
-        "ExecutionSettings":
-        {
-          "description": "A collection of key value pairs containing execution settings for this robot.",
-          "type": "object",
-          "additionalProperties":
-          {
-          }
-        },
-        "IsExternalLicensed":
-        {
-          "description": "Flag to indicate if the robot uses an external license",
-          "type": "boolean"
-        },
-        "LimitConcurrentExecution":
-        {
-          "description": "Specifies if the robot can be used concurrently on multiple machines",
-          "type": "boolean"
-        },
-        "Id":
-        {
-          "format": "int64",
-          "type": "integer"
-        }
-      }
-    },
-    "SimpleUserDto":
-    {
-      "description": "Entity derived from UserDto. Is shares all the properties of the base entity except the navigation properties.",
-      "type": "object",
-      "properties":
-      {
-        "Name":
-        {
-          "description": "The name of the person for which the user is created.",
-          "maxLength": 64,
-          "minLength": 0,
-          "type": "string"
-        },
-        "Surname":
-        {
-          "description": "The surname of the person for which the user is created.",
-          "maxLength": 64,
-          "minLength": 0,
-          "type": "string"
-        },
-        "UserName":
-        {
-          "description": "The name used to login to Orchestrator.",
-          "type": "string"
-        },
-        "Domain":
-        {
-          "description": "The domain from which the user is imported",
-          "type": "string"
-        },
-        "DirectoryIdentifier":
-        {
-          "description": "The directory identifier from which the user is imported",
-          "type": "string"
-        },
-        "FullName":
-        {
-          "description": "The full name of the person constructed with the format Name Surname.",
-          "type": "string"
-        },
-        "EmailAddress":
-        {
-          "format": "email",
-          "description": "The e-mail address associated with the user.",
-          "maxLength": 256,
-          "minLength": 0,
-          "type": "string"
-        },
-        "IsEmailConfirmed":
-        {
-          "description": "States if the email address is valid or not.",
-          "type": "boolean"
-        },
-        "LastLoginTime":
-        {
-          "format": "date-time",
-          "description": "The date and time when the user last logged in, or null if the user never logged in.",
-          "type": "string"
-        },
-        "IsActive":
-        {
-          "description": "States if the user is active or not. An inactive user cannot login to Orchestrator.",
-          "type": "boolean"
-        },
-        "CreationTime":
-        {
-          "format": "date-time",
-          "description": "The date and time when the user was created.",
-          "type": "string"
-        },
-        "AuthenticationSource":
-        {
-          "description": "The source which authenticated this user.",
-          "type": "string"
-        },
-        "Password":
-        {
-          "description": "The password used during application login.",
-          "type": "string"
-        },
-        "IsExternalLicensed":
-        {
-          "type": "boolean"
-        },
-        "UserRoles":
-        {
-          "description": "The collection of roles associated with the user.",
-          "type": "array",
-          "items":
-          {
-            "$ref": "#/definitions/UserRoleDto"
-          }
-        },
-        "RolesList":
-        {
-          "description": "The collection of role names associated with the user.",
-          "type": "array",
-          "items":
-          {
-            "type": "string"
-          }
-        },
-        "LoginProviders":
-        {
-          "description": "The collection of entities that can authenticate the user.",
-          "type": "array",
-          "items":
-          {
-            "type": "string"
-          }
-        },
-        "OrganizationUnits":
-        {
-          "description": "The collection of organization units associated with the user.",
-          "type": "array",
-          "items":
-          {
-            "$ref": "#/definitions/OrganizationUnitDto"
-          }
-        },
-        "TenantId":
-        {
-          "format": "int32",
-          "description": "The id of the tenant owning the user.",
-          "type": "integer"
-        },
-        "TenancyName":
-        {
-          "description": "The name of the tenant owning the user.",
-          "type": "string"
-        },
-        "TenantDisplayName":
-        {
-          "description": "The display name of the tenant owning the user.",
-          "type": "string"
-        },
-        "TenantKey":
-        {
-          "description": "The key of the tenant owning the user.",
-          "type": "string"
-        },
-        "Type":
-        {
-          "description": "The user type.",
-          "enum":
-          [
-            "User",
-            "Robot",
-            "DirectoryUser",
-            "DirectoryGroup"
-          ],
-          "type": "string",
-          "x-ms-enum":
-          {
-            "name": "UserDtoType",
-            "modelAsString": false
-          }
-        },
-        "ProvisionType":
-        {
-          "description": "The user type.",
-          "enum":
-          [
-            "Manual",
-            "Automatic"
-          ],
-          "type": "string",
-          "x-ms-enum":
-          {
-            "name": "UserDtoProvisionType",
-            "modelAsString": false
-          }
-        },
-        "LicenseType":
-        {
-          "description": "The user's license type.",
-          "enum":
-          [
-            "NonProduction",
-            "Attended",
-            "Unattended",
-            "Studio",
-            "RpaDeveloper",
-            "Development",
-            "StudioX",
-            "CitizenDeveloper",
-            "Headless",
-            "RpaDeveloperPro",
-            "StudioPro",
-            "TestAutomation"
-          ],
-          "type": "string",
-          "x-ms-enum":
-          {
-            "name": "UserDtoLicenseType",
-            "modelAsString": false
-          }
-        },
-        "RobotProvision":
-        {
-          "$ref": "#/definitions/AttendedRobotDto"
-        },
-        "UnattendedRobot":
-        {
-          "$ref": "#/definitions/UnattendedRobotDto"
-        },
-        "NotificationSubscription":
-        {
-          "$ref": "#/definitions/UserNotificationSubscription"
-        },
-        "Key":
-        {
-          "format": "uuid",
-          "description": "Unique key for a user",
-          "type": "string"
-        },
-        "MayHaveUserSession":
-        {
-          "description": "Specifies whether this user is allowed to have a User session (default: true)",
-          "type": "boolean"
-        },
-        "MayHaveRobotSession":
-        {
-          "description": "Specifies whether this user is allowed to have an Attended Robot attached (default: true)",
-          "type": "boolean"
-        },
-        "MayHaveUnattendedSession":
-        {
-          "description": "Specifies whether this user is allowed to have an Unattended Robot attached (default: false)",
-          "type": "boolean"
-        },
-        "BypassBasicAuthRestriction":
-        {
-          "description": "Specifies whether this user bypasses the \"Auth.RestrictBasicAuthentication\" application setting (default: false)",
-          "type": "boolean"
-        },
-        "MayHavePersonalWorkspace":
-        {
-          "description": "Specifies whether this user is allowed to have a Personal Workspace",
-          "type": "boolean"
-        },
-        "Id":
-        {
-          "format": "int64",
-          "type": "integer"
-        }
-      }
-    },
     "StartJobDto":
     {
       "type": "object",
@@ -2985,11 +2427,16 @@
             {
               "format": "int32",
               "description": "Required. Number of pending jobs to be created in the environment, for the current process. This number must be greater than 0 only if the start strategy is JobsCount.",
-              "type": "integer"
+              "type": "integer",
+              "x-ms-summary": "Jobs Count",
+              "x-ms-visibility": "advanced",
+              "default": 1
             },
             "Source":
             {
               "description": "The Source of the job starting the current process.",
+              "x-ms-visibility": "advanced",
+              "default": "Manual",
               "enum":
               [
                 "Manual",
@@ -3006,7 +2453,8 @@
             },
             "JobPriority":
             {
-              "description": "Execution priority. If null, defaults to the JobPriority of its release.",
+              "description": "If null, defaults to the job priority of its process.",
+              "x-ms-summary": "Job Priority",
               "enum":
               [
                 "Low",
@@ -3022,39 +2470,37 @@
             },
             "RuntimeType":
             {
-              "enum":
-              [
-                "NonProduction",
-                "Attended",
-                "Unattended",
-                "Studio",
-                "RpaDeveloper",
-                "Development",
-                "StudioX",
-                "CitizenDeveloper",
-                "Headless",
-                "RpaDeveloperPro",
-                "StudioPro",
-                "TestAutomation"
-              ],
+              "description": "Required. Select runtime you want to execute on.",
               "type": "string",
-              "x-ms-enum":
+              "x-ms-dynamic-values":
               {
-                "name": "StartProcessDtoRuntimeType",
-                "modelAsString": false
-              }
+                "operationId": "GetMachinesByFolderId",
+                "value-path": "Type",
+                "value-collection": "value",
+                "value-title": "Type",
+                "parameters":
+                {
+                  "folderId":
+                  {
+                    "parameter": "X-UIPATH-OrganizationUnitId"
+                  }
+                }
+              },
+              "x-ms-summary": "Runtime Type"
             },
             "InputArguments":
             {
               "description": "Input parameters in JSON format to be passed to job execution.",
               "maxLength": 10000,
-              "type": "string"
+              "type": "string",
+              "x-ms-summary": "Input Arguments"
             },
             "Reference":
             {
               "description": "Optional user-specified reference for jobs",
               "maxLength": 128,
-              "type": "string"
+              "type": "string",
+              "x-ms-visibility": "internal"
             }
           }
         }
@@ -3210,86 +2656,6 @@
         }
       }
     },
-    "UnattendedRobotDto":
-    {
-      "required":
-      [
-        "UserName"
-      ],
-      "type": "object",
-      "properties":
-      {
-        "UserName":
-        {
-          "description": "The username used to authenticate on the Host Machine.",
-          "maxLength": 100,
-          "minLength": 0,
-          "type": "string"
-        },
-        "Password":
-        {
-          "description": "The password used to authenticate on the Host Machine.",
-          "maxLength": 100,
-          "minLength": 0,
-          "type": "string"
-        },
-        "CredentialStoreId":
-        {
-          "format": "int64",
-          "description": "The credential store used to store the password.",
-          "type": "integer"
-        },
-        "CredentialType":
-        {
-          "description": "The robot credentials type (Default/ SmartCard)",
-          "enum":
-          [
-            "Default",
-            "SmartCard",
-            "NCipher",
-            "SafeNet"
-          ],
-          "type": "string",
-          "x-ms-enum":
-          {
-            "name": "UnattendedRobotDtoCredentialType",
-            "modelAsString": false
-          }
-        },
-        "CredentialExternalName":
-        {
-          "description": "Contains the value of the key in the external store used to store the password.",
-          "maxLength": 450,
-          "minLength": 0,
-          "type": "string"
-        },
-        "ExecutionSettings":
-        {
-          "description": "An object containing execution settings for the Robot.",
-          "type": "object",
-          "additionalProperties":
-          {
-          }
-        },
-        "LimitConcurrentExecution":
-        {
-          "description": "Specifies if the robot can be used concurrently on multiple machines",
-          "type": "boolean"
-        },
-        "RobotId":
-        {
-          "format": "int64",
-          "description": "The actual Id of the provisioned Robot.",
-          "type": "integer"
-        },
-        "MachineMappingsCount":
-        {
-          "format": "int32",
-          "description": "Number of assigned machine mappings.",
-          "type": "integer"
-        }
-      }
-    },
     "UserNotificationSubscription":
     {
       "type": "object",
@@ -3329,53 +2695,18 @@
         }
       }
     },
-    "UserRoleDto":
+    "ODataValueOfIEnumerableOfMachineRuntimeDto":
     {
-      "description": "Stores information about the association between a user and a role.",
       "type": "object",
       "properties":
       {
-        "UserId":
+        "value":
         {
-          "format": "int64",
-          "description": "The Id of the associated user.",
-          "type": "integer"
-        },
-        "RoleId":
-        {
-          "format": "int32",
-          "description": "The Id of the associated role.",
-          "type": "integer"
-        },
-        "UserName":
-        {
-          "description": "The name of the associated user",
-          "type": "string"
-        },
-        "RoleName":
-        {
-          "description": "The name of the associated role",
-          "type": "string"
-        },
-        "RoleType":
-        {
-          "enum":
-          [
-            "Mixed",
-            "Tenant",
-            "Folder"
-          ],
-          "type": "string",
-          "x-ms-enum":
+          "type": "array",
+          "items":
           {
-            "name": "UserRoleDtoRoleType",
-            "modelAsString": false
+            "$ref": "#/definitions/MachineRuntimeDto"
           }
-        },
-        "Id":
-        {
-          "format": "int64",
-          "type": "integer"
         }
       }
     }

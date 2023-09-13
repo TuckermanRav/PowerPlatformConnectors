@@ -2,7 +2,7 @@
 UiPath - [UiPath Website](https://uipath.com)
 
 ## Contact:
-UiPath Support Team - [UiPath Support Website](https://www.uipath.com/support)
+UiPath Support Team - [Contact Support](https://www.uipath.com/company/contact-us/contact-technical-support)
 
 ## Version: 
 1.0 - Initial Release
@@ -22,7 +22,7 @@ Add a queue item to a specific queue
 If you have any issues, requests for functionality, or have general feedback, please <integrations-apps@uipath.com>.
 
 ## Pre-requisites
-Please make sure you have an automation cloud account. [Sign up (https://www.uipath.com/developers/studio-download) for a trial.
+Please make sure you have an automation cloud account. [Sign up](https://www.uipath.com/developers/studio-download) for a trial.
 
 ## Using the Connector
 1. Select UiPath Connector as a step in your Power Automate Flow

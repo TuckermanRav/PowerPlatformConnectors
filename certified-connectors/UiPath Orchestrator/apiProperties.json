@@ -8,14 +8,15 @@
         "type": "oauthSetting",
         "oAuthSettings":
         {
-          "identityProvider": "oauth2",
+          "identityProvider": "oauth2generic",
           "clientId": "[enter client id]",
           "scopes":
           [
             "OR.Execution.Read",
             "OR.Folders.Read",
-            "OR.Jobs.Write",
+            "OR.Jobs",
             "OR.Queues",
+            "OR.Machines.Read",
             "offline_access"
           ],
           "redirectMode": "Global",
@@ -27,22 +28,34 @@
           },
           "customParameters":
           {
-            "authorizationUrl":
+            "authorizationUrlTemplate":
             {
               "value": "https://cloud.uipath.com/identity_/connect/authorize"
             },
-            "tokenUrl":
+            "authorizationUrlQueryStringTemplate":
+            {
+              "value": "?client_id={ClientId}&response_type=code&redirect_uri={RedirectUrl}&state={state}&acr_values=tenantName:{OrgName}&scope={scopes}"
+            },
+            "tokenUrlTemplate":
             {
               "value": "https://cloud.uipath.com/identity_/connect/token"
             },
-            "refreshUrl":
+            "tokenBodyTemplate":
+            {
+              "value": "client_id={ClientId}&code={Code}&scope={scopes}&grant_type=authorization_code&client_secret={ClientSecret}&redirect_uri={RedirectUrl}&acr_values=tenantName:{OrgName}"
+            },
+            "refreshUrlTemplate":
             {
               "value": "https://cloud.uipath.com/identity_/connect/token"
+            },
+            "refreshBodyTemplate":
+            {
+              "value": "client_id={ClientId}&scope={Scopes}&refresh_token={RefreshToken}&redirect_uri={RedirectUrl}&grant_type=refresh_token&client_secret={ClientSecret}&acr_values=tenantName:{OrgName}"
             }
           }
         }
       },
-      "organizationName":
+      "token:orgName":
       {
         "type": "string",
         "uiDefinition":
@@ -82,7 +95,7 @@
         "title": "Route to Tenant Address",
         "parameters":
         {
-          "x-ms-apimTemplateParameter.urlTemplate": "https://cloud.uipath.com/@connectionParameters('organizationName')/@connectionParameters('tenantName')"
+          "x-ms-apimTemplateParameter.urlTemplate": "https://cloud.uipath.com/@connectionParameters('token:orgName')/@connectionParameters('tenantName')"
         }
       }
     ],
